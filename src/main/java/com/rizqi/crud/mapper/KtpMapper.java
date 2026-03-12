@@ -16,4 +16,17 @@ public class KtpMapper {
         r.setJenisKelamin(ktp.getJenisKelamin());
         return r;
     }
+
+    public static Ktp toEntity(KtpRequest req) {
+        if (req == null) return null;
+        Ktp k = new Ktp();
+        k.setNomorKtp(req.getNomorKtp());
+        k.setNamaLengkap(req.getNamaLengkap());
+        k.setAlamat(req.getAlamat());
+        k.setTanggalLahir(req.getTanggalLahir());
+        k.setJenisKelamin(req.getJenisKelamin());
+        return k;
+    }
+
+
 }
