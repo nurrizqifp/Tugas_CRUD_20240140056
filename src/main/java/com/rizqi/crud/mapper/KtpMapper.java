@@ -28,5 +28,11 @@ public class KtpMapper {
         return k;
     }
 
-
+    public static void updateEntity(Ktp existing, KtpRequest req) {
+        existing.setNomorKtp(req.getNomorKtp());
+        existing.setNamaLengkap(req.getNamaLengkap());
+        existing.setAlamat(req.getAlamat());
+        existing.setTanggalLahir(req.getTanggalLahir());
+        existing.setJenisKelamin(req.getJenisKelamin());
+    }
 }
