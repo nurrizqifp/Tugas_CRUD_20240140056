@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CRUD KTP - Client</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        form { border: 1px solid #ddd; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+        label { display:block; margin-top:8px; }
+        input, select, textarea { width:100%; padding:8px; margin-top:4px; box-sizing: border-box; }
+        table { width:100%; border-collapse: collapse; margin-top: 8px; }
+        th, td { padding:8px; border:1px solid #ddd; text-align:left; }
+        .btn { padding:6px 10px; cursor:pointer; border-radius:4px; }
+        .btn-primary { background:#007bff; color:#fff; border:none; }
+        .btn-danger { background:#dc3545; color:#fff; border:none; }
+        .btn-secondary { background:#6c757d; color:#fff; border:none; }
+        .notification { margin-bottom:8px; padding:8px; border-radius:4px; }
+        .success { background:#d4edda; color:#155724; }
+        .error { background:#f8d7da; color:#721c24; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>CRUD KTP</h2>
+    <div id="notif"></div>
+
+    <form id="ktpForm">
+        <input type="hidden" id="editId" value="">
+        <label>Nomor KTP
+            <input type="text" id="nomorKtp" required maxlength="50">
+        </label>
+        <label>Nama Lengkap
+            <input type="text" id="namaLengkap" required maxlength="255">
+        </label>
+        <label>Alamat
+            <textarea id="alamat" rows="2"></textarea>
+        </label>
+        <label>Tanggal Lahir
+            <input type="date" id="tanggalLahir" required>
+        </label>
+        <label>Jenis Kelamin
+            <select id="jenisKelamin" required>
+                <option value="">-- Pilih --</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+                <option value="Lainnya">Lainnya</option>
+            </select>
+        </label>
+        <div style="margin-top:8px;">
+            <button type="submit" id="saveBtn" class="btn btn-primary">Simpan</button>
+            <button type="button" id="resetBtn" class="btn btn-secondary">Reset</button>
+        </div>
+    </form>
+
+    <h3>Daftar KTP</h3>
+    <table id="ktpTable">
+        <thead>
+        <tr>
+            <th>ID</th><th>Nomor KTP</th><th>Nama</th><th>Alamat</th><th>Tanggal Lahir</th><th>Jenis Kelamin</th><th>Aksi</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+    const API_BASE = '/ktp';
+
+    $(document).ready(function(){
+      loadAll();
+
+      $('#ktpForm').on('submit', function(e){
+        e.preventDefault();
+        const id = $('#editId').val();
+        const payload = {
+          nomorKtp: $('#nomorKtp').val().trim(),
+          namaLengkap: $('#namaLengkap').val().trim(),
+          alamat: $('#alamat').val().trim(),
+          tanggalLahir: $('#tanggalLahir').val(),
+          jenisKelamin: $('#jenisKelamin').val()
+        };
+
+        if (!payload.nomorKtp || !payload.namaLengkap || !payload.tanggalLahir || !payload.jenisKelamin) {
+          showNotif('Lengkapi seluruh form', 'error'); return;
+        }
+
+        if (id) {
+          // update
+          $.ajax({
+            url: API_BASE + '/' + id,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function(){
+              showNotif('Data berhasil diperbarui', 'success');
+              resetForm();
+              loadAll();
+            },
+            error: handleAjaxError
+          });
+        } else {
+          // create
+          $.ajax({
+            url: API_BASE,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function(){
+              showNotif('Data berhasil ditambahkan', 'success');
+              resetForm();
+              loadAll();
+            },
+            error: handleAjaxError
+          });
+        }
+      });
+
+      $('#resetBtn').on('click', function(){ resetForm(); });
+
+      function loadAll(){
+        $.ajax({
+          url: API_BASE,
+          method: 'GET',
+          success: function(data){
+            const tbody = $('#ktpTable tbody').empty();
+            data.forEach(function(row){
+              const tr = $('<tr>');
+              tr.append('<td>' + row.id + '</td>');
+              tr.append('<td>' + escapeHtml(row.nomorKtp) + '</td>');
+              tr.append('<td>' + escapeHtml(row.namaLengkap) + '</td>');
+              tr.append('<td>' + escapeHtml(row.alamat || '') + '</td>');
+              tr.append('<td>' + (row.tanggalLahir || '') + '</td>');
+              tr.append('<td>' + escapeHtml(row.jenisKelamin || '') + '</td>');
+              tr.append('<td>'
+                + '<button class="btn btn-secondary" onclick="editItem(' + row.id + ')">Edit</button> '
+                + '<button class="btn btn-danger" onclick="deleteItem(' + row.id + ')">Hapus</button>'
+                + '</td>');
+              tbody.append(tr);
+            });
+          },
+          error: handleAjaxError
+        });
+      }
+
+      window.editItem = function(id){
+        $.ajax({
+          url: API_BASE + '/' + id,
+          method: 'GET',
+          success: function(row){
+            $('#editId').val(row.id);
+            $('#nomorKtp').val(row.nomorKtp);
+            $('#namaLengkap').val(row.namaLengkap);
+            $('#alamat').val(row.alamat);
+            $('#tanggalLahir').val(row.tanggalLahir);
+            $('#jenisKelamin').val(row.jenisKelamin);
+            $('html,body').animate({scrollTop:0},'fast');
+          },
+          error: handleAjaxError
+        });
+      };
+
+      window.deleteItem = function(id){
+        if (!confirm('Yakin ingin menghapus data ID='+id+' ?')) return;
+        $.ajax({
+          url: API_BASE + '/' + id,
+          method: 'DELETE',
+          success: function(){
+            showNotif('Data berhasil dihapus', 'success');
+            loadAll();
+          },
+          error: handleAjaxError
+        });
+      };
+
+      function resetForm(){
+        $('#editId').val('');
+        $('#ktpForm')[0].reset();
+      }
+
+      function showNotif(msg, type){
+        const el = $('<div>').addClass('notification').addClass(type === 'success' ? 'success' : 'error').text(msg);
+        $('#notif').empty().append(el);
+        setTimeout(()=> el.fadeOut(300, ()=> el.remove()), 3500);
+      }
+
+      function handleAjaxError(xhr){
+        if (xhr && xhr.responseJSON) {
+          if (xhr.responseJSON.error) {
+            showNotif(xhr.responseJSON.error, 'error');
+          } else if (xhr.responseJSON.errors) {
+            let msgs = [];
+            for (const k in xhr.responseJSON.errors) msgs.push(xhr.responseJSON.errors[k]);
+            showNotif(msgs.join('; '), 'error');
+          } else {
+            showNotif('Terjadi kesalahan', 'error');
+          }
+        } else {
+          showNotif('Terjadi kesalahan jaringan', 'error');
+        }
+      }
+
+      function escapeHtml(text){
+        return $('<div>').text(text).html();
+      }
+
+    });
+</script>
+</body>
+</html>
